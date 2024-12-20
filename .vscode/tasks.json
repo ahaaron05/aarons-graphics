@@ -3,8 +3,8 @@
         {
             "type": "cppbuild",
             "label": "C/C++: g++.exe build active file",
-            "command": "C:\\msys64\\ucrt64\\bin\\g++.exe",
-            "args": [
+            "command": "C:\\msys64\\ucrt64\\bin\\g++.exe", // just means the compiler path
+            "args": [                           // Just a way for vs code to put the command line stuff every time we run for us
                 "-fdiagnostics-color=always",
                 "-g",
                 "-std=c++17",
