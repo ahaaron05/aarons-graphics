@@ -7,12 +7,22 @@
 #include <iostream>
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
-void processInput(GLFWwindow* window);
+void process_input(GLFWwindow* window);
+void calculate_delta_time();
+
 
 // Settings
 const unsigned int SCREEN_WIDTH = 900;
 const unsigned int SCREEN_HEIGHT = 700;
-const float FOV_Y = 80.0f;
+const float FOV_Y = 100.0f;
+const float DESIRED_CAMERA_SPEED = 10.0f;
+
+float delta_time = 0.0f; // Time between current frame and last frame
+float last_frame_time = 0.0f;
+
+glm::vec3 camera_pos = glm::vec3(0.0f, 0.0f, 5.0f);
+glm::vec3 camera_front = glm::vec3(0, 0, -1);
+glm::vec3 camera_up = glm::vec3(0, 1, 0);
 
 int main()
 {
@@ -119,9 +129,9 @@ int main()
 	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(4 * sizeof(float)));
 	glEnableVertexAttribArray(1);
 	glBindVertexArray(0); // unbind for safety
-
-	glm::mat4 view(1.0f);
-	view = glm::translate(view, glm::vec3(0.0f, 0.0f, -7.0f)); // NOTE: right-handed system
+	
+	
+	//view = glm::translate(view, glm::vec3(0.0f, 0.0f, -7.0f)); // NOTE: right-handed system
 	glm::mat4 projection(1.0f);
 	projection = glm::perspective(glm::radians(FOV_Y), (float)(SCREEN_WIDTH / SCREEN_HEIGHT), 0.1f, 100.0f); // NOTE: aspect ratio will determine FOV_X
 
@@ -144,14 +154,21 @@ int main()
 	while (!glfwWindowShouldClose(window))
 	{
 		// input
-		processInput(window);
+		process_input(window);
 
 		// render commands
 		glClearColor(0, 0, 0, 1);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+		calculate_delta_time();
+
+		glm::mat4 view = glm::mat4(1);
+		view = glm::lookAt(camera_pos, camera_pos + camera_front, camera_up);
+
+
 		shaderProgram.setMat4("view", view);
 		shaderProgram.setMat4("projection", projection);
+
 		// Drawing
 		glBindVertexArray(VAO);
 		shaderProgram.use();
@@ -162,11 +179,12 @@ int main()
 			model = glm::rotate(model, (float)glfwGetTime(), glm::vec3(0, 1, 0));
 			shaderProgram.setMat4("model", model);
 			glDrawArrays(GL_TRIANGLES, 0, 36);
-		}
+		} 
+
 		// check for events and swap buffers
 		glfwSwapBuffers(window);
 		glfwPollEvents();
-	}
+	} 
 
 	// deallocate
 	glDeleteVertexArrays(1, &VAO);
@@ -182,7 +200,7 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 }
 
 // Handles all input within GLFW window
-void processInput(GLFWwindow* window)
+void process_input(GLFWwindow* window)
 {
 	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
 	{
@@ -196,4 +214,31 @@ void processInput(GLFWwindow* window)
 	{
 		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 	}
+
+	// Movement
+	float camera_speed = DESIRED_CAMERA_SPEED * delta_time;
+
+	if(glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+	{
+		camera_pos += camera_speed * camera_front;
+	}
+	if(glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+	{	// Use cross product to create a right vector accordingly, creates strafe effect.
+		camera_pos -= glm::normalize(glm::cross(camera_front, camera_up)) * camera_speed;
+	}
+	if(glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+	{
+		camera_pos -= camera_speed * camera_front;
+	}
+	if(glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+	{
+		camera_pos += glm::normalize(glm::cross(camera_front, camera_up)) * camera_speed;
+	}
+}
+
+void calculate_delta_time()
+{
+	float current_frame_time = glfwGetTime();
+	delta_time = current_frame_time - last_frame_time;
+	last_frame_time = current_frame_time;
 }
