@@ -4,10 +4,12 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include "Shader.hpp"
+#include "Camera.hpp"
 #include <iostream>
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
+void scroll_callback(GLFWwindow* window, double x_offset, double y_offset);
 void process_input(GLFWwindow* window);
 void calculate_delta_time();
 
@@ -15,22 +17,16 @@ void calculate_delta_time();
 // Settings
 const unsigned int SCREEN_WIDTH = 900;
 const unsigned int SCREEN_HEIGHT = 700;
-const float FOV_Y = 80.0f;
-const float DESIRED_CAMERA_SPEED = 10.0f;
-const float SENSITIVITY = 0.1f;
 
+// camera
+Camera camera(glm::vec3(0.0f, 0.0f, 5.0f));
+float last_x = SCREEN_WIDTH / 2.0f;
+float last_y = SCREEN_HEIGHT / 2.0f;
+bool first_mouse = true;
+
+// timing
 float delta_time = 0.0f; // Time between current frame and last frame
 float last_frame_time = 0.0f;
-
-glm::vec3 camera_pos = glm::vec3(0.0f, 0.0f, 5.0f);
-glm::vec3 camera_front = glm::vec3(0, 0, -1);
-glm::vec3 camera_up = glm::vec3(0, 1, 0);
-
-float last_x = SCREEN_WIDTH / 2;
-float last_y = SCREEN_HEIGHT / 2;
-float yaw = -90.0f;
-float pitch = 0.0f;
-bool first_mouse = true;
 
 int main()
 {
@@ -42,7 +38,7 @@ int main()
 #ifdef __APPLE__
 	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 #endif
-	GLFWwindow* window = glfwCreateWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "The Radical Violet Project", NULL, NULL);
+	GLFWwindow* window = glfwCreateWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "aarons graphics", NULL, NULL);
 	if (window == NULL)
 	{
 		std::cout << "Failed to create GLFW window\n";
@@ -52,6 +48,7 @@ int main()
 	glfwMakeContextCurrent(window);
 	glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 	glfwSetCursorPosCallback(window, mouse_callback);
+	glfwSetScrollCallback(window, scroll_callback);
 	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
 	// Init GLAD
@@ -140,10 +137,6 @@ int main()
 	glEnableVertexAttribArray(1);
 	glBindVertexArray(0); // unbind for safety
 	
-
-	glm::mat4 projection(1.0f);
-	projection = glm::perspective(glm::radians(FOV_Y), (float)(SCREEN_WIDTH / SCREEN_HEIGHT), 0.1f, 100.0f); // NOTE: aspect ratio will determine FOV_X
-
 	glm::vec3 cubePosition[]
 	{
 		glm::vec3(0.0f,  0.0f,  0.0f),
@@ -162,6 +155,9 @@ int main()
 	// Render Loop
 	while (!glfwWindowShouldClose(window))
 	{
+		// per-frame time logic
+		calculate_delta_time();
+
 		// input
 		process_input(window);
 
@@ -169,19 +165,20 @@ int main()
 		glClearColor(0, 0, 0, 1);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		calculate_delta_time();
+		
 
-		glm::mat4 view = glm::mat4(1);
-		view = glm::lookAt(camera_pos, camera_pos + camera_front, camera_up);
-
-
-		shaderProgram.setMat4("view", view);
+		// pass projection matrix to shader (note: in this case, it can change every frame)
+		glm::mat4 projection = glm::perspective(glm::radians(camera.fov), (float)(SCREEN_WIDTH / SCREEN_HEIGHT), 0.1f, 100.0f); // NOTE: aspect ratio will determine FOV_X
 		shaderProgram.setMat4("projection", projection);
+
+		// camera/view transformation and pass to shader
+		glm::mat4 view = camera.get_view_matrix();
+		shaderProgram.setMat4("view", view);
 
 		// Drawing
 		glBindVertexArray(VAO);
 		shaderProgram.use();
-		for (int i = 0; i < 10; i++)
+		for(int i = 0; i < 10; i++)
 		{
 			glm::mat4 model(1.0f);
 			model = glm::translate(model, cubePosition[i]);
@@ -211,71 +208,47 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 // mouse input related stuff
 void mouse_callback(GLFWwindow* window, double xpos, double ypos)
 {
-	if(first_mouse)
-	{
-		last_x = xpos;
-		last_y = ypos;
-		first_mouse = false;
-	}
+	float x_pos = static_cast<float>(xpos);
+    float y_pos = static_cast<float>(ypos);
 
-	float x_offset = xpos - last_x;
-	float y_offset = last_y - ypos; // reversed since y-coordinates range from bottom to top
-	last_x = xpos;
-	last_y = ypos;
+    if (first_mouse)
+    {
+        last_x = x_pos;
+        last_y = y_pos;
+        first_mouse = false;
+    }
 
-	x_offset *= SENSITIVITY;
-	y_offset *= SENSITIVITY;
+    float x_offset = x_pos - last_x;
+    float y_offset = last_y - y_pos; // reversed since y-coordinates go from bottom to top
 
-	yaw += x_offset;
-	pitch += y_offset;
+    last_x = x_pos;
+    last_y = y_pos;
 
-	if(pitch > 89.0f)
-		pitch = 89.0f;
-	if(pitch < -89.0f)
-		pitch = -89.0f;
-
-	glm::vec3 direction;
-	direction.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
-	direction.y = sin(glm::radians(pitch));
-	direction.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
-	camera_front = glm::normalize(direction);
+    camera.process_mouse_input(x_offset, y_offset);
 }
 
 // Handles all input within GLFW window
 void process_input(GLFWwindow* window)
 {
+	// Exit program
 	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
-	{
 		glfwSetWindowShouldClose(window, true);
-	}
+
+	// Line mode Toggle
 	if (glfwGetKey(window, GLFW_KEY_L) == GLFW_PRESS)
-	{
 		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-	}
 	if (glfwGetKey(window, GLFW_KEY_F) == GLFW_PRESS)
-	{
 		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-	}
 
 	// Movement
-	float camera_speed = DESIRED_CAMERA_SPEED * delta_time;
-
 	if(glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-	{
-		camera_pos += camera_speed * camera_front;
-	}
+		camera.process_keyboard_input(FORWARD, delta_time);
 	if(glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-	{	// Use cross product to create a right vector accordingly, creates strafe effect.
-		camera_pos -= glm::normalize(glm::cross(camera_front, camera_up)) * camera_speed;
-	}
+		camera.process_keyboard_input(LEFT, delta_time);
 	if(glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-	{
-		camera_pos -= camera_speed * camera_front;
-	}
+		camera.process_keyboard_input(BACKWARD, delta_time);
 	if(glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-	{
-		camera_pos += glm::normalize(glm::cross(camera_front, camera_up)) * camera_speed;
-	}
+		camera.process_keyboard_input(RIGHT, delta_time);
 }
 
 void calculate_delta_time()
@@ -283,4 +256,9 @@ void calculate_delta_time()
 	float current_frame_time = glfwGetTime();
 	delta_time = current_frame_time - last_frame_time;
 	last_frame_time = current_frame_time;
+}
+
+void scroll_callback(GLFWwindow* window, double x_offset, double y_offset)
+{
+	camera.process_mouse_scroll(static_cast<float>(y_offset));
 }
