@@ -60,16 +60,16 @@ int main()
 	glEnable(GL_DEPTH_TEST);
 
 	// query GPU info
-	const char* GPUVendor = (const char*)glGetString(GL_VENDOR);
-	const char* GPURenderer = (const char*)glGetString(GL_RENDERER);
-	std::cout << "GPU Vendor::" << GPUVendor << std::endl << "GPU Renderer::" << GPURenderer << std::endl;
+	const char* gpu_vendor = (const char*)glGetString(GL_VENDOR);
+	const char* gpu_renderer = (const char*)glGetString(GL_RENDERER);
+	std::cout << "GPU Vendor::" << gpu_vendor << std::endl << "GPU Renderer::" << gpu_renderer << std::endl;
 	// query max GPU vertex attributes
 	int nAttributes;
 	glGetIntegerv(GL_MAX_VERTEX_ATTRIBS, &nAttributes);
 	std::cout << "GPU Vertex Attributes supported::" << nAttributes << std::endl;
 	
 	// Shader program
-	Shader shaderProgram("shader.vert", "shader.frag");
+	Shader shader_program("shader.vert", "shader.frag");
 
 	// Vertex data
 	float vertices[] =
@@ -169,21 +169,21 @@ int main()
 
 		// pass projection matrix to shader (note: in this case, it can change every frame)
 		glm::mat4 projection = glm::perspective(glm::radians(camera.fov), (float)(SCREEN_WIDTH / SCREEN_HEIGHT), 0.1f, 100.0f); // NOTE: aspect ratio will determine FOV_X
-		shaderProgram.setMat4("projection", projection);
+		shader_program.setMat4("projection", projection);
 
 		// camera/view transformation and pass to shader
 		glm::mat4 view = camera.get_view_matrix();
-		shaderProgram.setMat4("view", view);
+		shader_program.setMat4("view", view);
 
 		// Drawing
 		glBindVertexArray(VAO);
-		shaderProgram.use();
+		shader_program.use();
 		for(int i = 0; i < 10; i++)
 		{
 			glm::mat4 model(1.0f);
 			model = glm::translate(model, cubePosition[i]);
 			model = glm::rotate(model, (float)glfwGetTime(), glm::vec3(0, 1, 0));
-			shaderProgram.setMat4("model", model);
+			shader_program.setMat4("model", model);
 			glDrawArrays(GL_TRIANGLES, 0, 36);
 		} 
 
