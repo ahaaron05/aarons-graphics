@@ -1,0 +1,75 @@
+// draw_sierpinski algorithm
+
+draw_sierpinski(shader, v1, v2, v3, 3)
+
+draw_sierpinski(shader, v1, mid1, mid3, 2)
+    draw_sierpinski(shader, v1, mid1, mid3, 1)
+        draw_sierpinski(shader, v1, mid1, mid3, 0)
+            [[DRAW]]
+        draw_sierpinski(shader, mid1, v2, mid2, 0)
+            [[DRAW]]
+        draw_sierpinski(shader, mid3, mid2, v3, 0)
+            [[DRAW]]
+    draw_sierpinski(shader, mid1, v2, mid2, 1)
+        draw_sierpinski(shader, v1, mid1, mid3, 0)
+            [[DRAW]]
+        draw_sierpinski(shader, mid1, v2, mid2, 0)
+            [[DRAW]]
+        draw_sierpinski(shader, mid3, mid2, v3, 0)
+            [[DRAW]]
+    draw_sierpinski(shader, mid3, mid2, v3, 1)
+        draw_sierpinski(shader, v1, mid1, mid3, 0)
+            [[DRAW]]
+        draw_sierpinski(shader, mid1, v2, mid2, 0)
+            [[DRAW]]
+        draw_sierpinski(shader, mid3, mid2, v3, 0)
+            [[DRAW]]
+draw_sierpinski(shader, mid1, v2, mid2, 2)
+    draw_sierpinski(shader, v1, mid1, mid3, 1)
+        draw_sierpinski(shader, v1, mid1, mid3, 0)
+            [[DRAW]]
+        draw_sierpinski(shader, mid1, v2, mid2, 0)
+            [[DRAW]]
+        draw_sierpinski(shader, mid3, mid2, v3, 0)
+            [[DRAW]]
+    draw_sierpinski(shader, mid1, v2, mid2, 1)
+        draw_sierpinski(shader, v1, mid1, mid3, 0)
+            [[DRAW]]
+        draw_sierpinski(shader, mid1, v2, mid2, 0)
+            [[DRAW]]
+        draw_sierpinski(shader, mid3, mid2, v3, 0)
+            [[DRAW]]
+    draw_sierpinski(shader, mid3, mid2, v3, 1)
+        draw_sierpinski(shader, v1, mid1, mid3, 0)
+            [[DRAW]]
+        draw_sierpinski(shader, mid1, v2, mid2, 0)
+            [[DRAW]]
+        draw_sierpinski(shader, mid3, mid2, v3, 0)
+            [[DRAW]]
+draw_sierpinski(shader, mid3, mid2, v3, 2)
+    draw_sierpinski(shader, v1, mid1, mid3, 1)
+        draw_sierpinski(shader, v1, mid1, mid3, 0)
+            [[DRAW]]
+        draw_sierpinski(shader, mid1, v2, mid2, 0)
+            [[DRAW]]
+        draw_sierpinski(shader, mid3, mid2, v3, 0)
+            [[DRAW]]
+    draw_sierpinski(shader, mid1, v2, mid2, 1)
+        draw_sierpinski(shader, v1, mid1, mid3, 0)
+            [[DRAW]]
+        draw_sierpinski(shader, mid1, v2, mid2, 0)
+            [[DRAW]]
+        draw_sierpinski(shader, mid3, mid2, v3, 0)
+            [[DRAW]]
+    draw_sierpinski(shader, mid3, mid2, v3, 1)
+        draw_sierpinski(shader, v1, mid1, mid3, 0)
+            [[DRAW]]
+        draw_sierpinski(shader, mid1, v2, mid2, 0)
+            [[DRAW]]
+        draw_sierpinski(shader, mid3, mid2, v3, 0)
+            [[DRAW]]
+
+
+
+
+***WANT_LIST***

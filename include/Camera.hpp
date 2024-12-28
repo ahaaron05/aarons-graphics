@@ -17,7 +17,7 @@ enum Camera_Movement    // Used as abstraction to stay away from glfw-specific i
 const float FOV = 80.0f;
 const float YAW     = -90.0f;
 const float PITCH   =  0.0f;
-const float DESIRED_CAMERA_SPEED = 10.0f;
+const float DESIRED_CAMERA_SPEED = 6.0f;
 const float SENSITIVITY = 0.1f;
 
 class Camera 

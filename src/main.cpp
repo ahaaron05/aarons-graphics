@@ -5,13 +5,19 @@
 #include <glm/gtc/type_ptr.hpp>
 #include "Shader.hpp"
 #include "Camera.hpp"
+#include "stb_image.h"
 #include <iostream>
+#include <vector>
+#include <stack>
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void scroll_callback(GLFWwindow* window, double x_offset, double y_offset);
 void process_input(GLFWwindow* window);
 void calculate_delta_time();
+void draw_cube(Shader& shader);
+void draw_sierpinski(Shader& shader, glm::vec3 v1, glm::vec3 v2, glm::vec3 v3, int degree);
+void drawTexturedTriangle(Shader& shader, glm::vec3 v1, glm::vec3 v2, glm::vec3 v3);
 
 
 // Settings
@@ -67,89 +73,31 @@ int main()
 	int nAttributes;
 	glGetIntegerv(GL_MAX_VERTEX_ATTRIBS, &nAttributes);
 	std::cout << "GPU Vertex Attributes supported::" << nAttributes << std::endl;
+
+	// texture stuff
+	unsigned int texture;
+	glGenTextures(1, &texture);
+	glBindTexture(GL_TEXTURE_2D, texture);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	int width, height, nChannels;
+	unsigned char* data = stbi_load("D:/aarons graphics/res/wall.jpg", &width, &height, &nChannels, 0);
+	if(data)
+	{
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+		glGenerateMipmap(GL_TEXTURE_2D);
+	}
+	else
+	{
+		std::cout << "Failed to load texture" << std::endl;
+	}
+	stbi_image_free(data);
+
 	
 	// Shader program
 	Shader shader_program("shader.vert", "shader.frag");
-
-	// Vertex data
-	float vertices[] =
-	{   // positions				colors
-		-0.5f, -0.5f, -0.5f,	  0.0f, 0.0f, 1.0f,
-		 0.5f, -0.5f, -0.5f,	  1.0f, 0.0f, 0.0f,
-		 0.5f,  0.5f, -0.5f,	  0.0f, 1.0f, 0.0f,
-		 0.5f,  0.5f, -0.5f,	  0.0f, 0.0f, 1.0f,
-		-0.5f,  0.5f, -0.5f,	  1.0f, 0.0f, 0.0f,
-		-0.5f, -0.5f, -0.5f,	  0.0f, 1.0f, 0.0f,
-								  
-		-0.5f, -0.5f,  0.5f,	  0.0f, 0.0f, 1.0f,
-		 0.5f, -0.5f,  0.5f,	  1.0f, 0.0f, 0.0f,
-		 0.5f,  0.5f,  0.5f,	  0.0f, 1.0f, 0.0f,
-		 0.5f,  0.5f,  0.5f,	  0.0f, 0.0f, 1.0f,
-		-0.5f,  0.5f,  0.5f,	  1.0f, 0.0f, 0.0f,
-		-0.5f, -0.5f,  0.5f,	  0.0f, 1.0f, 0.0f,
-								  
-		-0.5f,  0.5f,  0.5f,	  0.0f, 0.0f, 1.0f,
-		-0.5f,  0.5f, -0.5f,	  1.0f, 0.0f, 0.0f,
-		-0.5f, -0.5f, -0.5f,	  0.0f, 1.0f, 0.0f,
-		-0.5f, -0.5f, -0.5f,	  0.0f, 0.0f, 1.0f,
-		-0.5f, -0.5f,  0.5f,	  1.0f, 0.0f, 0.0f,
-		-0.5f,  0.5f,  0.5f,	  0.0f, 1.0f, 0.0f,
-								  
-		 0.5f,  0.5f,  0.5f,	  0.0f, 0.0f, 1.0f,
-		 0.5f,  0.5f, -0.5f,	  1.0f, 0.0f, 0.0f,
-		 0.5f, -0.5f, -0.5f,	  0.0f, 1.0f, 0.0f,
-		 0.5f, -0.5f, -0.5f,	  0.0f, 0.0f, 1.0f,
-		 0.5f, -0.5f,  0.5f,	  1.0f, 0.0f, 0.0f,
-		 0.5f,  0.5f,  0.5f,	  0.0f, 1.0f, 0.0f,
-								  
-		-0.5f, -0.5f, -0.5f,	  0.0f, 0.0f, 1.0f,
-		 0.5f, -0.5f, -0.5f,	  1.0f, 0.0f, 0.0f,
-		 0.5f, -0.5f,  0.5f,	  0.0f, 1.0f, 0.0f,
-		 0.5f, -0.5f,  0.5f,	  0.0f, 0.0f, 1.0f,
-		-0.5f, -0.5f,  0.5f,	  1.0f, 0.0f, 0.0f,
-		-0.5f, -0.5f, -0.5f,	  0.0f, 1.0f, 0.0f,
-								  
-		-0.5f,  0.5f, -0.5f,	  0.0f, 0.0f, 1.0f,
-		 0.5f,  0.5f, -0.5f,	  1.0f, 0.0f, 0.0f,
-		 0.5f,  0.5f,  0.5f,	  0.0f, 1.0f, 0.0f,
-		 0.5f,  0.5f,  0.5f,	  0.0f, 0.0f, 1.0f,
-		-0.5f,  0.5f,  0.5f,	  1.0f, 0.0f, 0.0f,
-		-0.5f,  0.5f, -0.5f,	  0.0f, 1.0f, 0.0f,
-	};
-	unsigned int indices[] =
-	{
-		0, 1, 3,	// tri 1
-		1, 2, 3,	// tri 2
-	};
-	unsigned int VBO, VAO;
-	unsigned int EBO;
-	glGenVertexArrays(1, &VAO);
-	glGenBuffers(1, &VBO);
-	glGenBuffers(1, &EBO);
-	glBindVertexArray(VAO); //! BIND VAO FIRST
-	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
-	glEnableVertexAttribArray(0);
-	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(4 * sizeof(float)));
-	glEnableVertexAttribArray(1);
-	glBindVertexArray(0); // unbind for safety
-	
-	glm::vec3 cubePosition[]
-	{
-		glm::vec3(0.0f,  0.0f,  0.0f),
-		glm::vec3(2.0f,  5.0f, -15.0f),
-		glm::vec3(-1.5f, -2.2f, -2.5f),
-		glm::vec3(-3.8f, -2.0f, -12.3f),
-		glm::vec3(2.4f, -0.4f, -3.5f),
-		glm::vec3(-1.7f,  3.0f, -7.5f),
-		glm::vec3(1.3f, -2.0f, -2.5f),
-		glm::vec3(1.5f,  2.0f, -2.5f),
-		glm::vec3(1.5f,  0.2f, -1.5f),
-		glm::vec3(-1.3f,  1.0f, -1.5f),
-	};
 
 	
 	// Render Loop
@@ -165,36 +113,30 @@ int main()
 		glClearColor(0, 0, 0, 1);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		
-
 		// pass projection matrix to shader (note: in this case, it can change every frame)
 		glm::mat4 projection = glm::perspective(glm::radians(camera.fov), (float)(SCREEN_WIDTH / SCREEN_HEIGHT), 0.1f, 100.0f); // NOTE: aspect ratio will determine FOV_X
 		shader_program.setMat4("projection", projection);
 
 		// camera/view transformation and pass to shader
 		glm::mat4 view = camera.get_view_matrix();
-		shader_program.setMat4("view", view);
+		shader_program.setMat4("view", view);  
 
-		// Drawing
-		glBindVertexArray(VAO);
-		shader_program.use();
-		for(int i = 0; i < 10; i++)
-		{
-			glm::mat4 model(1.0f);
-			model = glm::translate(model, cubePosition[i]);
-			model = glm::rotate(model, (float)glfwGetTime(), glm::vec3(0, 1, 0));
-			shader_program.setMat4("model", model);
-			glDrawArrays(GL_TRIANGLES, 0, 36);
-		} 
+		glm::mat4 model(1.0f);
+		shader_program.setMat4("model", model);
+		drawTexturedTriangle(shader_program, glm::vec3(-0.5f, -0.5f, 0.0f), glm::vec3(0.0f, 0.5f, 0.0f), glm::vec3(0.5f, -0.5f, 0.0f));
+
+		//draw_sierpinski(shader_program, glm::vec3(-0.5f, -0.5f, 0.0f), glm::vec3(0.0f, 0.5f, 0.0f), glm::vec3(0.5f, -0.5f, 0.0f), 5);
+
+		// model = glm::translate(model, glm::vec3(-2, 0, 0));
+		// shader_program.setMat4("model", model);
+		// draw_cube(shader_program);
+
 
 		// check for events and swap buffers
 		glfwSwapBuffers(window);
 		glfwPollEvents();
 	} 
 
-	// deallocate
-	glDeleteVertexArrays(1, &VAO);
-	glDeleteBuffers(1, &VBO);
 	glfwTerminate();
 	return 0;
 }
@@ -261,4 +203,159 @@ void calculate_delta_time()
 void scroll_callback(GLFWwindow* window, double x_offset, double y_offset)
 {
 	camera.process_mouse_scroll(static_cast<float>(y_offset));
+}
+
+void draw_cube(Shader& shader)
+{
+	float vertices[] =
+	{   // positions				colors
+		-0.5f, -0.5f, -0.5f,	  0.0f, 0.0f, 1.0f,
+		 0.5f, -0.5f, -0.5f,	  1.0f, 0.0f, 0.0f,
+		 0.5f,  0.5f, -0.5f,	  0.0f, 1.0f, 0.0f,
+		 0.5f,  0.5f, -0.5f,	  0.0f, 0.0f, 1.0f,
+		-0.5f,  0.5f, -0.5f,	  1.0f, 0.0f, 0.0f,
+		-0.5f, -0.5f, -0.5f,	  0.0f, 1.0f, 0.0f,
+								  
+		-0.5f, -0.5f,  0.5f,	  0.0f, 0.0f, 1.0f,
+		 0.5f, -0.5f,  0.5f,	  1.0f, 0.0f, 0.0f,
+		 0.5f,  0.5f,  0.5f,	  0.0f, 1.0f, 0.0f,
+		 0.5f,  0.5f,  0.5f,	  0.0f, 0.0f, 1.0f,
+		-0.5f,  0.5f,  0.5f,	  1.0f, 0.0f, 0.0f,
+		-0.5f, -0.5f,  0.5f,	  0.0f, 1.0f, 0.0f,
+								  
+		-0.5f,  0.5f,  0.5f,	  0.0f, 0.0f, 1.0f,
+		-0.5f,  0.5f, -0.5f,	  1.0f, 0.0f, 0.0f,
+		-0.5f, -0.5f, -0.5f,	  0.0f, 1.0f, 0.0f,
+		-0.5f, -0.5f, -0.5f,	  0.0f, 0.0f, 1.0f,
+		-0.5f, -0.5f,  0.5f,	  1.0f, 0.0f, 0.0f,
+		-0.5f,  0.5f,  0.5f,	  0.0f, 1.0f, 0.0f,
+								  
+		 0.5f,  0.5f,  0.5f,	  0.0f, 0.0f, 1.0f,
+		 0.5f,  0.5f, -0.5f,	  1.0f, 0.0f, 0.0f,
+		 0.5f, -0.5f, -0.5f,	  0.0f, 1.0f, 0.0f,
+		 0.5f, -0.5f, -0.5f,	  0.0f, 0.0f, 1.0f,
+		 0.5f, -0.5f,  0.5f,	  1.0f, 0.0f, 0.0f,
+		 0.5f,  0.5f,  0.5f,	  0.0f, 1.0f, 0.0f,
+								  
+		-0.5f, -0.5f, -0.5f,	  0.0f, 0.0f, 1.0f,
+		 0.5f, -0.5f, -0.5f,	  1.0f, 0.0f, 0.0f,
+		 0.5f, -0.5f,  0.5f,	  0.0f, 1.0f, 0.0f,
+		 0.5f, -0.5f,  0.5f,	  0.0f, 0.0f, 1.0f,
+		-0.5f, -0.5f,  0.5f,	  1.0f, 0.0f, 0.0f,
+		-0.5f, -0.5f, -0.5f,	  0.0f, 1.0f, 0.0f,
+								  
+		-0.5f,  0.5f, -0.5f,	  0.0f, 0.0f, 1.0f,
+		 0.5f,  0.5f, -0.5f,	  1.0f, 0.0f, 0.0f,
+		 0.5f,  0.5f,  0.5f,	  0.0f, 1.0f, 0.0f,
+		 0.5f,  0.5f,  0.5f,	  0.0f, 0.0f, 1.0f,
+		-0.5f,  0.5f,  0.5f,	  1.0f, 0.0f, 0.0f,
+		-0.5f,  0.5f, -0.5f,	  0.0f, 1.0f, 0.0f,
+	};
+
+	unsigned int VBO, VAO;
+	glGenVertexArrays(1, &VAO);
+	glGenBuffers(1, &VBO);
+	glBindVertexArray(VAO);
+	glBindBuffer(GL_ARRAY_BUFFER, VBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
+	glEnableVertexAttribArray(1);
+
+	glBindVertexArray(VAO);
+	shader.use();
+	glDrawArrays(GL_TRIANGLES, 0, 36);
+
+	glDeleteVertexArrays(1, &VAO);
+	glDeleteBuffers(1, &VBO);
+}
+
+// Draws a sierpinski triangle to specified degree of depth
+void draw_sierpinski(Shader& shader, glm::vec3 v1, glm::vec3 v2, glm::vec3 v3, int degree)
+{
+	std::vector<float> vertices;
+
+	// lamnda func to add tri to vertex list
+	auto add_triangle = [&vertices](glm::vec3 v1, glm::vec3 v2, glm::vec3 v3)
+	{
+		vertices.push_back(v1.x); vertices.push_back(v1.y); vertices.push_back(v1.z);	vertices.push_back(1); vertices.push_back(0); vertices.push_back(0);  // RED
+		vertices.push_back(v2.x); vertices.push_back(v2.y); vertices.push_back(v2.z);	vertices.push_back(0); vertices.push_back(1); vertices.push_back(0);  // GREEN
+		vertices.push_back(v3.x); vertices.push_back(v3.y); vertices.push_back(v3.z);	vertices.push_back(0); vertices.push_back(0); vertices.push_back(1);  // BLUE
+	};
+
+	// use a stack to handle tri's iteratively
+	std::stack<std::tuple<glm::vec3, glm::vec3, glm::vec3, int>> stack;
+	stack.push({v1, v2, v3, degree});
+
+	while(!stack.empty())
+	{
+		auto [v1, v2, v3, depth] = stack.top();
+		stack.pop();
+
+		if(depth == 0)
+		{
+			add_triangle(v1, v2, v3);
+		}
+		else 
+		{
+			glm::vec3 mid1 = 0.5f * (v1 + v2);
+			glm::vec3 mid2 = 0.5f * (v2 + v3);
+			glm::vec3 mid3 = 0.5f * (v1 + v3);
+
+			// push the 3 smaller tris to the stack
+			stack.push({v1, mid1, mid3, depth - 1});
+			stack.push({mid1, v2, mid2, depth - 1});
+			stack.push({mid3, mid2, v3, depth - 1});
+		}
+	}
+
+	unsigned int VBO, VAO;
+	glGenVertexArrays(1, &VAO);
+	glGenBuffers(1, &VBO);
+	glBindVertexArray(VAO);
+	glBindBuffer(GL_ARRAY_BUFFER, VBO);
+	glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float), vertices.data(), GL_STATIC_DRAW);
+
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
+	glEnableVertexAttribArray(1);
+
+	shader.use();
+	glDrawArrays(GL_TRIANGLES, 0, vertices.size() / 6);
+
+	// cleanup
+	glDeleteVertexArrays(1, &VAO);
+	glDeleteBuffers(1, &VBO);
+}
+
+void drawTexturedTriangle(Shader& shader, glm::vec3 v1, glm::vec3 v2, glm::vec3 v3)
+{
+	float vertices[] =
+	{	// pos				// color			// tex
+		v1.x, v1.y, v1.z,	0.0f, 0.0f, 1.0f,	0.0f, 0.0f,
+		v2.x, v2.y, v2.z,	1.0f, 0.0f, 0.0f,	0.5f, 1.0f,
+		v3.x, v3.y, v3.z, 	0.0f, 1.0f, 0.0f,	1.0f, 0.0f,
+	};
+
+	unsigned int VBO, VAO;
+	glGenVertexArrays(1, &VAO);
+	glGenBuffers(1, &VBO);
+	glBindVertexArray(VAO);
+	glBindBuffer(GL_ARRAY_BUFFER, VBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
+	glEnableVertexAttribArray(1);
+	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
+	glEnableVertexAttribArray(2);
+
+	glBindVertexArray(VAO);
+	shader.use();
+	glDrawArrays(GL_TRIANGLES, 0, 3);
+
+	glDeleteVertexArrays(1, &VAO);
+	glDeleteBuffers(1, &VBO);
 }
