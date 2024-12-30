@@ -97,8 +97,72 @@ int main()
 
 	
 	// Shader program
-	Shader shader_program("shader.vert", "shader.frag");
+	Shader shader_program("shaders/shader.vert", "shaders/shader.frag");
 
+	// light - the colors that are relected is what we see.
+	float vertices[] =
+	{   // positions		
+		-0.5f, -0.5f, -0.5f,
+		 0.5f, -0.5f, -0.5f,
+		 0.5f,  0.5f, -0.5f,
+		 0.5f,  0.5f, -0.5f,
+		-0.5f,  0.5f, -0.5f,
+		-0.5f, -0.5f, -0.5f,
+					
+		-0.5f, -0.5f,  0.5f,
+		 0.5f, -0.5f,  0.5f,
+		 0.5f,  0.5f,  0.5f,
+		 0.5f,  0.5f,  0.5f,
+		-0.5f,  0.5f,  0.5f,
+		-0.5f, -0.5f,  0.5f,
+					
+		-0.5f,  0.5f,  0.5f,
+		-0.5f,  0.5f, -0.5f,
+		-0.5f, -0.5f, -0.5f,
+		-0.5f, -0.5f, -0.5f,
+		-0.5f, -0.5f,  0.5f,
+		-0.5f,  0.5f,  0.5f,
+					
+		 0.5f,  0.5f,  0.5f,
+		 0.5f,  0.5f, -0.5f,
+		 0.5f, -0.5f, -0.5f,
+		 0.5f, -0.5f, -0.5f,
+		 0.5f, -0.5f,  0.5f,
+		 0.5f,  0.5f,  0.5f,
+					
+		-0.5f, -0.5f, -0.5f,
+		 0.5f, -0.5f, -0.5f,
+		 0.5f, -0.5f,  0.5f,
+		 0.5f, -0.5f,  0.5f,
+		-0.5f, -0.5f,  0.5f,
+		-0.5f, -0.5f, -0.5f,
+					
+		-0.5f,  0.5f, -0.5f,
+		 0.5f,  0.5f, -0.5f,
+		 0.5f,  0.5f,  0.5f,
+		 0.5f,  0.5f,  0.5f,
+		-0.5f,  0.5f,  0.5f,
+		-0.5f,  0.5f, -0.5f,
+	};
+	unsigned int colorCubeVAO, VBO;
+	glGenVertexArrays(1, &colorCubeVAO);
+	glGenBuffers(1, &VBO);
+	glBindVertexArray(colorCubeVAO);
+	glBindBuffer(GL_ARRAY_BUFFER, VBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+	// pos attribute
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+	glEnableVertexAttribArray(0);
+
+	unsigned int lightCubeVAO;
+	glGenVertexArrays(1, &lightCubeVAO);
+	glBindVertexArray(lightCubeVAO);
+	glBindBuffer(GL_ARRAY_BUFFER, VBO);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+	glEnableVertexAttribArray(0);
+
+	Shader colorObjShader("shaders/color_cube.vert", "shaders/color_cube.frag");
+	Shader lightSrcShader("shaders/light_cube.vert", "shaders/light_cube.frag");
 	
 	// Render Loop
 	while (!glfwWindowShouldClose(window))
@@ -113,23 +177,36 @@ int main()
 		glClearColor(0, 0, 0, 1);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+		colorObjShader.use();
+		colorObjShader.setVec3("objColor", glm::vec3(1.0f, 0.5f, 0.31f));
+		float waveLightColor = sin(glfwGetTime());
+		colorObjShader.setVec3("lightColor", glm::vec3(1, waveLightColor, -waveLightColor));
+
 		// pass projection matrix to shader (note: in this case, it can change every frame)
 		glm::mat4 projection = glm::perspective(glm::radians(camera.fov), (float)(SCREEN_WIDTH / SCREEN_HEIGHT), 0.1f, 100.0f); // NOTE: aspect ratio will determine FOV_X
-		shader_program.setMat4("projection", projection);
-
-		// camera/view transformation and pass to shader
 		glm::mat4 view = camera.get_view_matrix();
+		shader_program.setMat4("projection", projection);
 		shader_program.setMat4("view", view);  
 
-		glm::mat4 model(1.0f);
-		shader_program.setMat4("model", model);
-		drawTexturedTriangle(shader_program, glm::vec3(-0.5f, -0.5f, 0.0f), glm::vec3(0.0f, 0.5f, 0.0f), glm::vec3(0.5f, -0.5f, 0.0f));
+		glm::mat4 model = glm::mat4(1.0f);
+		colorObjShader.setMat4("model", model);
 
-		//draw_sierpinski(shader_program, glm::vec3(-0.5f, -0.5f, 0.0f), glm::vec3(0.0f, 0.5f, 0.0f), glm::vec3(0.5f, -0.5f, 0.0f), 5);
-
-		// model = glm::translate(model, glm::vec3(-2, 0, 0));
-		// shader_program.setMat4("model", model);
-		// draw_cube(shader_program);
+		// render the cube
+		glBindVertexArray(colorCubeVAO);
+		glDrawArrays(GL_TRIANGLES, 0, 36);
+		
+		// now draw, light source cube
+		lightSrcShader.use();
+		lightSrcShader.setMat4("projection", projection);
+		lightSrcShader.setMat4("view", view);
+		glm::vec3 lightPos(1.3f, 1.0f, -1.0f);
+		model = glm::mat4(1.0f);
+		model = glm::translate(model, lightPos); 	// move and scale down light source
+		model = glm::scale(model, glm::vec3(0.2f));
+		lightSrcShader.setMat4("model", model);
+		
+		glBindVertexArray(lightCubeVAO);
+		glDrawArrays(GL_TRIANGLES, 0, 36);
 
 
 		// check for events and swap buffers
@@ -137,6 +214,10 @@ int main()
 		glfwPollEvents();
 	} 
 
+	// de-allocate and clean-up
+	glDeleteVertexArrays(1, &colorCubeVAO);
+	glDeleteVertexArrays(1, &lightCubeVAO);
+	glDeleteBuffers(1, &VBO);
 	glfwTerminate();
 	return 0;
 }
@@ -208,7 +289,7 @@ void scroll_callback(GLFWwindow* window, double x_offset, double y_offset)
 void draw_cube(Shader& shader)
 {
 	float vertices[] =
-	{   // positions				colors
+	{   // positions			  //colors
 		-0.5f, -0.5f, -0.5f,	  0.0f, 0.0f, 1.0f,
 		 0.5f, -0.5f, -0.5f,	  1.0f, 0.0f, 0.0f,
 		 0.5f,  0.5f, -0.5f,	  0.0f, 1.0f, 0.0f,
@@ -275,7 +356,7 @@ void draw_cube(Shader& shader)
 void draw_sierpinski(Shader& shader, glm::vec3 v1, glm::vec3 v2, glm::vec3 v3, int degree)
 {
 	std::vector<float> vertices;
-
+	
 	// lamnda func to add tri to vertex list
 	auto add_triangle = [&vertices](glm::vec3 v1, glm::vec3 v2, glm::vec3 v3)
 	{
