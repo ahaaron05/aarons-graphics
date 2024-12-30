@@ -24,7 +24,7 @@ void drawTexturedTriangle(Shader& shader, glm::vec3 v1, glm::vec3 v2, glm::vec3 
 const unsigned int SCREEN_WIDTH = 900;
 const unsigned int SCREEN_HEIGHT = 700;
 
-// camera
+// cameras
 Camera camera(glm::vec3(0.0f, 0.0f, 5.0f));
 float last_x = SCREEN_WIDTH / 2.0f;
 float last_y = SCREEN_HEIGHT / 2.0f;
@@ -33,6 +33,9 @@ bool first_mouse = true;
 // timing
 float delta_time = 0.0f; // Time between current frame and last frame
 float last_frame_time = 0.0f;
+
+// lighting
+glm::vec3 lightPos(1.3f, 1.2f, -1.0f);
 
 int main()
 {
@@ -100,49 +103,49 @@ int main()
 	Shader shader_program("shaders/shader.vert", "shaders/shader.frag");
 
 	// light - the colors that are relected is what we see.
-	float vertices[] =
-	{   // positions		
-		-0.5f, -0.5f, -0.5f,
-		 0.5f, -0.5f, -0.5f,
-		 0.5f,  0.5f, -0.5f,
-		 0.5f,  0.5f, -0.5f,
-		-0.5f,  0.5f, -0.5f,
-		-0.5f, -0.5f, -0.5f,
-					
-		-0.5f, -0.5f,  0.5f,
-		 0.5f, -0.5f,  0.5f,
-		 0.5f,  0.5f,  0.5f,
-		 0.5f,  0.5f,  0.5f,
-		-0.5f,  0.5f,  0.5f,
-		-0.5f, -0.5f,  0.5f,
-					
-		-0.5f,  0.5f,  0.5f,
-		-0.5f,  0.5f, -0.5f,
-		-0.5f, -0.5f, -0.5f,
-		-0.5f, -0.5f, -0.5f,
-		-0.5f, -0.5f,  0.5f,
-		-0.5f,  0.5f,  0.5f,
-					
-		 0.5f,  0.5f,  0.5f,
-		 0.5f,  0.5f, -0.5f,
-		 0.5f, -0.5f, -0.5f,
-		 0.5f, -0.5f, -0.5f,
-		 0.5f, -0.5f,  0.5f,
-		 0.5f,  0.5f,  0.5f,
-					
-		-0.5f, -0.5f, -0.5f,
-		 0.5f, -0.5f, -0.5f,
-		 0.5f, -0.5f,  0.5f,
-		 0.5f, -0.5f,  0.5f,
-		-0.5f, -0.5f,  0.5f,
-		-0.5f, -0.5f, -0.5f,
-					
-		-0.5f,  0.5f, -0.5f,
-		 0.5f,  0.5f, -0.5f,
-		 0.5f,  0.5f,  0.5f,
-		 0.5f,  0.5f,  0.5f,
-		-0.5f,  0.5f,  0.5f,
-		-0.5f,  0.5f, -0.5f,
+	float vertices[] = 
+	{	 // Pos					// normals
+    	-0.5f, -0.5f, -0.5f,  	0.0f,  0.0f, -1.0f,
+    	 0.5f, -0.5f, -0.5f,  	0.0f,  0.0f, -1.0f, 
+    	 0.5f,  0.5f, -0.5f,  	0.0f,  0.0f, -1.0f, 			// face 1
+    	 0.5f,  0.5f, -0.5f,  	0.0f,  0.0f, -1.0f, 
+    	-0.5f,  0.5f, -0.5f,  	0.0f,  0.0f, -1.0f, 
+    	-0.5f, -0.5f, -0.5f,  	0.0f,  0.0f, -1.0f, 
+
+    	-0.5f, -0.5f,  0.5f,  	0.0f,  0.0f, 1.0f,
+    	 0.5f, -0.5f,  0.5f,  	0.0f,  0.0f, 1.0f,
+    	 0.5f,  0.5f,  0.5f,  	0.0f,  0.0f, 1.0f,				// face 2
+    	 0.5f,  0.5f,  0.5f,  	0.0f,  0.0f, 1.0f,
+    	-0.5f,  0.5f,  0.5f,  	0.0f,  0.0f, 1.0f,
+    	-0.5f, -0.5f,  0.5f,  	0.0f,  0.0f, 1.0f,
+
+    	-0.5f,  0.5f,  0.5f, 	-1.0f,  0.0f,  0.0f,
+    	-0.5f,  0.5f, -0.5f, 	-1.0f,  0.0f,  0.0f,
+    	-0.5f, -0.5f, -0.5f, 	-1.0f,  0.0f,  0.0f,			// face 3
+    	-0.5f, -0.5f, -0.5f, 	-1.0f,  0.0f,  0.0f,
+    	-0.5f, -0.5f,  0.5f, 	-1.0f,  0.0f,  0.0f,
+    	-0.5f,  0.5f,  0.5f, 	-1.0f,  0.0f,  0.0f,
+
+    	 0.5f,  0.5f,  0.5f,  	1.0f,  0.0f,  0.0f,
+    	 0.5f,  0.5f, -0.5f,  	1.0f,  0.0f,  0.0f,
+    	 0.5f, -0.5f, -0.5f,  	1.0f,  0.0f,  0.0f,				// face 4
+    	 0.5f, -0.5f, -0.5f,  	1.0f,  0.0f,  0.0f,
+    	 0.5f, -0.5f,  0.5f,  	1.0f,  0.0f,  0.0f,
+    	 0.5f,  0.5f,  0.5f,  	1.0f,  0.0f,  0.0f,
+
+    	-0.5f, -0.5f, -0.5f,  	0.0f, -1.0f,  0.0f,
+    	 0.5f, -0.5f, -0.5f,  	0.0f, -1.0f,  0.0f,
+    	 0.5f, -0.5f,  0.5f,  	0.0f, -1.0f,  0.0f,
+    	 0.5f, -0.5f,  0.5f,  	0.0f, -1.0f,  0.0f,				// face 5
+    	-0.5f, -0.5f,  0.5f,  	0.0f, -1.0f,  0.0f,
+    	-0.5f, -0.5f, -0.5f,  	0.0f, -1.0f,  0.0f,
+
+    	-0.5f,  0.5f, -0.5f,  	0.0f,  1.0f,  0.0f,
+    	 0.5f,  0.5f, -0.5f,  	0.0f,  1.0f,  0.0f,
+    	 0.5f,  0.5f,  0.5f,  	0.0f,  1.0f,  0.0f,				// face 6
+    	 0.5f,  0.5f,  0.5f,  	0.0f,  1.0f,  0.0f,
+    	-0.5f,  0.5f,  0.5f,  	0.0f,  1.0f,  0.0f,
+    	-0.5f,  0.5f, -0.5f,  	0.0f,  1.0f,  0.0f
 	};
 	unsigned int colorCubeVAO, VBO;
 	glGenVertexArrays(1, &colorCubeVAO);
@@ -151,14 +154,18 @@ int main()
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 	// pos attribute
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
 	glEnableVertexAttribArray(0);
+	// normal attribute
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float),  (void*)(3 * sizeof(float)));
+	glEnableVertexAttribArray(1);
 
 	unsigned int lightCubeVAO;
 	glGenVertexArrays(1, &lightCubeVAO);
 	glBindVertexArray(lightCubeVAO);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+	// pos attribute
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
 	glEnableVertexAttribArray(0);
 
 	Shader colorObjShader("shaders/color_cube.vert", "shaders/color_cube.frag");
@@ -179,9 +186,10 @@ int main()
 
 		colorObjShader.use();
 		colorObjShader.setVec3("objColor", glm::vec3(1.0f, 0.5f, 0.31f));
-		float waveLightColor = sin(glfwGetTime());
-		colorObjShader.setVec3("lightColor", glm::vec3(1, waveLightColor, -waveLightColor));
-
+		colorObjShader.setVec3("lightColor", glm::vec3(1, 1, 1));
+		colorObjShader.setVec3("lightPos", lightPos);
+		colorObjShader.setVec3("viewPos", camera.position);
+		
 		// pass projection matrix to shader (note: in this case, it can change every frame)
 		glm::mat4 projection = glm::perspective(glm::radians(camera.fov), (float)(SCREEN_WIDTH / SCREEN_HEIGHT), 0.1f, 100.0f); // NOTE: aspect ratio will determine FOV_X
 		glm::mat4 view = camera.get_view_matrix();
@@ -190,6 +198,9 @@ int main()
 
 		glm::mat4 model = glm::mat4(1.0f);
 		colorObjShader.setMat4("model", model);
+		glm::mat4 normalMat = glm::transpose(glm::inverse(model));
+		colorObjShader.setMat4("normalMat", normalMat);
+
 
 		// render the cube
 		glBindVertexArray(colorCubeVAO);
@@ -199,7 +210,6 @@ int main()
 		lightSrcShader.use();
 		lightSrcShader.setMat4("projection", projection);
 		lightSrcShader.setMat4("view", view);
-		glm::vec3 lightPos(1.3f, 1.0f, -1.0f);
 		model = glm::mat4(1.0f);
 		model = glm::translate(model, lightPos); 	// move and scale down light source
 		model = glm::scale(model, glm::vec3(0.2f));
