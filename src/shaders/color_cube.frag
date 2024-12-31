@@ -24,10 +24,10 @@ void main()
 
     // specular
     float specularStrength = 0.5f;
-    int shininessValue = 32;
+    int shininessFactor = 256;
     vec3 viewDir = normalize(viewPos - fragPos);
     vec3 reflectDir = reflect(-lightDir, norm);   // reflect light dir horizontally
-    float spec = pow(max(dot(viewDir, reflectDir), 0.0) , shininessValue);
+    float spec = pow(max(dot(viewDir, reflectDir), 0.0) , shininessFactor);
     vec3 specular = specularStrength * spec * lightColor;
 
     // Phong

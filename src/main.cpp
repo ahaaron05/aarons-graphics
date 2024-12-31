@@ -99,10 +99,8 @@ int main()
 	stbi_image_free(data);
 
 	
-	// Shader program
-	Shader shader_program("shaders/shader.vert", "shaders/shader.frag");
 
-	// light - the colors that are relected is what we see.
+	// setup for color cube 
 	float vertices[] = 
 	{	 // Pos					// normals
     	-0.5f, -0.5f, -0.5f,  	0.0f,  0.0f, -1.0f,
@@ -160,6 +158,40 @@ int main()
 	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float),  (void*)(3 * sizeof(float)));
 	glEnableVertexAttribArray(1);
 
+	// setup for rendering normal lines
+	std::vector<float> normalLinesVerticies;
+	float normalLineLength = 0.2f; // for visualization, not for real interpretation;
+	for(size_t i = 0; i < sizeof(vertices) / sizeof(vertices[0]); i += 6)
+	{
+		float vx = vertices[i];
+		float vy = vertices[i+1];
+		float vz = vertices[i+2];
+
+		float nx = vertices[i+3];
+		float ny = vertices[i+4];
+		float nz = vertices[i+5];
+
+		// start point (vertex position)
+		normalLinesVerticies.push_back(vx);
+		normalLinesVerticies.push_back(vy);
+		normalLinesVerticies.push_back(vz);
+
+		// End point (vertex position + normal * scale)
+		normalLinesVerticies.push_back(vx + nx * normalLineLength);
+		normalLinesVerticies.push_back(vy + ny * normalLineLength);
+		normalLinesVerticies.push_back(vz + nz * normalLineLength);
+	}
+
+	unsigned int normalLinesVAO, normalLinesVBO;
+	glGenVertexArrays(1, &normalLinesVAO);
+	glGenBuffers(1, &normalLinesVBO);
+	glBindVertexArray(normalLinesVAO);
+	glBindBuffer(GL_ARRAY_BUFFER, normalLinesVBO);
+	glBufferData(GL_ARRAY_BUFFER, normalLinesVerticies.size() * sizeof(float), normalLinesVerticies.data(), GL_STATIC_DRAW);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+	glEnableVertexAttribArray(0);
+
+	// Setup for light source cube
 	unsigned int lightCubeVAO;
 	glGenVertexArrays(1, &lightCubeVAO);
 	glBindVertexArray(lightCubeVAO);
@@ -170,6 +202,7 @@ int main()
 
 	Shader colorObjShader("shaders/color_cube.vert", "shaders/color_cube.frag");
 	Shader lightSrcShader("shaders/light_cube.vert", "shaders/light_cube.frag");
+	Shader normalLinesShader("shaders/normal_lines.vert", "shaders/normal_lines.frag");
 	
 	// Render Loop
 	while (!glfwWindowShouldClose(window))
@@ -187,14 +220,16 @@ int main()
 		colorObjShader.use();
 		colorObjShader.setVec3("objColor", glm::vec3(1.0f, 0.5f, 0.31f));
 		colorObjShader.setVec3("lightColor", glm::vec3(1, 1, 1));
-		colorObjShader.setVec3("lightPos", lightPos);
+		float radius = 5.0f;
+		glm::vec3 dynamicLightPos = glm::vec3(radius * cos(glfwGetTime() / 2), 0.0f, radius * sin(glfwGetTime() / 2));
+		colorObjShader.setVec3("lightPos", dynamicLightPos);
 		colorObjShader.setVec3("viewPos", camera.position);
 		
 		// pass projection matrix to shader (note: in this case, it can change every frame)
 		glm::mat4 projection = glm::perspective(glm::radians(camera.fov), (float)(SCREEN_WIDTH / SCREEN_HEIGHT), 0.1f, 100.0f); // NOTE: aspect ratio will determine FOV_X
 		glm::mat4 view = camera.get_view_matrix();
-		shader_program.setMat4("projection", projection);
-		shader_program.setMat4("view", view);  
+		colorObjShader.setMat4("projection", projection);
+		colorObjShader.setMat4("view", view);  
 
 		glm::mat4 model = glm::mat4(1.0f);
 		colorObjShader.setMat4("model", model);
@@ -206,7 +241,7 @@ int main()
 		glBindVertexArray(colorCubeVAO);
 		glDrawArrays(GL_TRIANGLES, 0, 36);
 		
-		// now draw, light source cube
+		// now render the light source cube
 		lightSrcShader.use();
 		lightSrcShader.setMat4("projection", projection);
 		lightSrcShader.setMat4("view", view);
@@ -214,9 +249,22 @@ int main()
 		model = glm::translate(model, lightPos); 	// move and scale down light source
 		model = glm::scale(model, glm::vec3(0.2f));
 		lightSrcShader.setMat4("model", model);
+		model = glm::mat4(1.0f);
+		model = glm::translate(model, dynamicLightPos);
+		lightSrcShader.setMat4("model", model);
 		
 		glBindVertexArray(lightCubeVAO);
 		glDrawArrays(GL_TRIANGLES, 0, 36);
+
+		// render normal lines visually
+		normalLinesShader.use();
+		normalLinesShader.setMat4("projection", projection);
+		normalLinesShader.setMat4("view", view);
+		model = glm::mat4(1.0f);
+		normalLinesShader.setMat4("model", model);
+
+		glBindVertexArray(normalLinesVAO);
+		glDrawArrays(GL_LINES, 0, normalLinesVerticies.size() / 3);
 
 
 		// check for events and swap buffers
