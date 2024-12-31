@@ -10,6 +10,10 @@
 #include <vector>
 #include <stack>
 
+#ifndef M_PI 	// manually defined pi constant for use in calculations
+#define M_PI 3.14159265358979323846
+#endif
+
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void scroll_callback(GLFWwindow* window, double x_offset, double y_offset);
@@ -160,7 +164,7 @@ int main()
 
 	// setup for rendering normal lines
 	std::vector<float> normalLinesVerticies;
-	float normalLineLength = 0.2f; // for visualization, not for real interpretation;
+	float normalLineLength = 0.5f; // for visualization, not for real interpretation;
 	for(size_t i = 0; i < sizeof(vertices) / sizeof(vertices[0]); i += 6)
 	{
 		float vx = vertices[i];
@@ -218,13 +222,22 @@ int main()
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		colorObjShader.use();
-		colorObjShader.setVec3("objColor", glm::vec3(1.0f, 0.5f, 0.31f));
-		colorObjShader.setVec3("lightColor", glm::vec3(1, 1, 1));
-		float radius = 5.0f;
-		glm::vec3 dynamicLightPos = glm::vec3(radius * cos(glfwGetTime() / 2), 0.0f, radius * sin(glfwGetTime() / 2));
-		colorObjShader.setVec3("lightPos", dynamicLightPos);
-		colorObjShader.setVec3("viewPos", camera.position);
+        colorObjShader.setVec3("viewPos", camera.position);
 		
+		// light properties
+		float radius = 4.0f;
+		glm::vec3 dynamicLightPos = glm::vec3(radius * cos(static_cast<float>(glfwGetTime()) / 2), 0.0f, radius * sin(static_cast<float>(glfwGetTime()) / 2));
+		colorObjShader.setVec3("light.position", dynamicLightPos);
+        colorObjShader.setVec3("light.ambient", glm::vec3(0.1f));
+        colorObjShader.setVec3("light.diffuse", glm::vec3(0.5f));
+        colorObjShader.setVec3("light.specular", glm::vec3(1.0f));
+
+        // material properties (ex. ruby)
+        colorObjShader.setVec3("material.ambient", glm::vec3(0.1745,	0.01175,	0.01175));
+        colorObjShader.setVec3("material.diffuse", glm::vec3(0.61424,	0.04136,	0.04136));
+        colorObjShader.setVec3("material.specular", glm::vec3(0.727811,	0.626959,	0.626959)); // specular lighting doesn't have full effect on this object's material
+        colorObjShader.setFloat("material.shininess", 32.0f);
+	
 		// pass projection matrix to shader (note: in this case, it can change every frame)
 		glm::mat4 projection = glm::perspective(glm::radians(camera.fov), (float)(SCREEN_WIDTH / SCREEN_HEIGHT), 0.1f, 100.0f); // NOTE: aspect ratio will determine FOV_X
 		glm::mat4 view = camera.get_view_matrix();
@@ -235,6 +248,7 @@ int main()
 		colorObjShader.setMat4("model", model);
 		glm::mat4 normalMat = glm::transpose(glm::inverse(model));
 		colorObjShader.setMat4("normalMat", normalMat);
+		colorObjShader.setVec3("viewPos", camera.position);
 
 
 		// render the cube
