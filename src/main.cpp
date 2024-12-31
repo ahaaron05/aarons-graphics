@@ -1,6 +1,6 @@
-#include <imgui/imgui.h>
-#include <imgui/imgui_impl_glfw.h>
-#include <imgui/imgui_impl_opengl3.h>
+#include "imgui/imgui.h"
+#include "imgui/imgui_impl_glfw.h"
+#include "imgui/imgui_impl_opengl3.h"
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
@@ -28,8 +28,8 @@ void drawTexturedTriangle(Shader& shader, glm::vec3 v1, glm::vec3 v2, glm::vec3 
 
 
 // Settings
-const unsigned int SCREEN_WIDTH = 900;
-const unsigned int SCREEN_HEIGHT = 700;
+const unsigned int SCREEN_WIDTH = 1200;
+const unsigned int SCREEN_HEIGHT = 900;
 
 // cameras
 Camera camera(glm::vec3(0.0f, 0.0f, 5.0f));
@@ -65,7 +65,7 @@ int main()
 	glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 	glfwSetCursorPosCallback(window, mouse_callback);
 	glfwSetScrollCallback(window, scroll_callback);
-	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
 
 	// Init GLAD
 	if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
@@ -88,8 +88,10 @@ int main()
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
 	ImGuiIO& io = ImGui::GetIO(); (void)io;
+	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+	io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
 	ImGui::StyleColorsDark();
-	ImGui_ImplGlfw_InitForOpenGL(window, true);
+	ImGui_ImplGlfw_InitForOpenGL(window, true); // setup Platform/Renderer backends
 	ImGui_ImplOpenGL3_Init("#version 330");
 
 	// texture stuff
@@ -225,6 +227,13 @@ int main()
 		// per-frame time logic
 		calculate_delta_time();
 
+		// Start the ImGui frame
+		ImGui_ImplOpenGL3_NewFrame();
+		ImGui_ImplGlfw_NewFrame();
+		ImGui::NewFrame();
+		ImGui::ShowDemoWindow(); // :)
+
+
 		// input
 		process_input(window);
 
@@ -291,6 +300,9 @@ int main()
 		glBindVertexArray(normalLinesVAO);
 		glDrawArrays(GL_LINES, 0, normalLinesVerticies.size() / 3);
 
+		// ImGui render
+		ImGui::Render();
+		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
 		// check for events and swap buffers
 		glfwSwapBuffers(window);
@@ -301,6 +313,9 @@ int main()
 	glDeleteVertexArrays(1, &colorCubeVAO);
 	glDeleteVertexArrays(1, &lightCubeVAO);
 	glDeleteBuffers(1, &VBO);
+	ImGui_ImplOpenGL3_Shutdown();
+	ImGui_ImplGlfw_Shutdown();
+	ImGui::DestroyContext();
 	glfwTerminate();
 	return 0;
 }
