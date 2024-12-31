@@ -1,3 +1,6 @@
+#include <imgui/imgui.h>
+#include <imgui/imgui_impl_glfw.h>
+#include <imgui/imgui_impl_opengl3.h>
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
@@ -80,6 +83,14 @@ int main()
 	int nAttributes;
 	glGetIntegerv(GL_MAX_VERTEX_ATTRIBS, &nAttributes);
 	std::cout << "GPU Vertex Attributes supported::" << nAttributes << std::endl;
+
+	// imgui setup stuff
+	IMGUI_CHECKVERSION();
+	ImGui::CreateContext();
+	ImGuiIO& io = ImGui::GetIO(); (void)io;
+	ImGui::StyleColorsDark();
+	ImGui_ImplGlfw_InitForOpenGL(window, true);
+	ImGui_ImplOpenGL3_Init("#version 330");
 
 	// texture stuff
 	unsigned int texture;
@@ -232,11 +243,11 @@ int main()
         colorObjShader.setVec3("light.diffuse", glm::vec3(0.5f));
         colorObjShader.setVec3("light.specular", glm::vec3(1.0f));
 
-        // material properties (ex. ruby)
-        colorObjShader.setVec3("material.ambient", glm::vec3(0.1745,	0.01175,	0.01175));
-        colorObjShader.setVec3("material.diffuse", glm::vec3(0.61424,	0.04136,	0.04136));
-        colorObjShader.setVec3("material.specular", glm::vec3(0.727811,	0.626959,	0.626959)); // specular lighting doesn't have full effect on this object's material
-        colorObjShader.setFloat("material.shininess", 32.0f);
+        // material properties (example, chrome)
+        colorObjShader.setVec3("material.ambient", glm::vec3(0.25f));
+        colorObjShader.setVec3("material.diffuse", glm::vec3(0.4f));
+        colorObjShader.setVec3("material.specular", glm::vec3(0.774597f)); // specular lighting doesn't have full effect on this object's material
+        colorObjShader.setFloat("material.shininess", 0.6f * 128.0f);
 	
 		// pass projection matrix to shader (note: in this case, it can change every frame)
 		glm::mat4 projection = glm::perspective(glm::radians(camera.fov), (float)(SCREEN_WIDTH / SCREEN_HEIGHT), 0.1f, 100.0f); // NOTE: aspect ratio will determine FOV_X
