@@ -13,6 +13,8 @@
 #include <vector>
 #include <stack>
 
+#define UI_ENABLED 0
+
 #ifndef M_PI 	// manually defined pi constant for use in calculations
 #define M_PI 3.14159265358979323846
 #endif
@@ -65,7 +67,7 @@ int main()
 	glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 	glfwSetCursorPosCallback(window, mouse_callback);
 	glfwSetScrollCallback(window, scroll_callback);
-	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
 	// Init GLAD
 	if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
@@ -85,14 +87,16 @@ int main()
 	std::cout << "GPU Vertex Attributes supported::" << nAttributes << std::endl;
 
 	// imgui setup stuff
-	IMGUI_CHECKVERSION();
-	ImGui::CreateContext();
-	ImGuiIO& io = ImGui::GetIO(); (void)io;
-	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
-	io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
-	ImGui::StyleColorsDark();
-	ImGui_ImplGlfw_InitForOpenGL(window, true); // setup Platform/Renderer backends
-	ImGui_ImplOpenGL3_Init("#version 330");
+	#if UI_ENABLED
+		IMGUI_CHECKVERSION();
+		ImGui::CreateContext();
+		ImGuiIO& io = ImGui::GetIO(); (void)io;
+		io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+		io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
+		ImGui::StyleColorsDark();
+		ImGui_ImplGlfw_InitForOpenGL(window, true); // setup Platform/Renderer backends
+		ImGui_ImplOpenGL3_Init("#version 330");
+	#endif
 
 	// texture stuff
 	unsigned int texture;
@@ -227,12 +231,13 @@ int main()
 		// per-frame time logic
 		calculate_delta_time();
 
-		// Start the ImGui frame
-		ImGui_ImplOpenGL3_NewFrame();
-		ImGui_ImplGlfw_NewFrame();
-		ImGui::NewFrame();
-		ImGui::ShowDemoWindow(); // :)
-
+		#if UI_ENABLED
+			// Start the ImGui frame
+			ImGui_ImplOpenGL3_NewFrame();
+			ImGui_ImplGlfw_NewFrame();
+			ImGui::NewFrame();
+			ImGui::ShowDemoWindow(); // :)
+		#endif
 
 		// input
 		process_input(window);
@@ -301,8 +306,10 @@ int main()
 		glDrawArrays(GL_LINES, 0, normalLinesVerticies.size() / 3);
 
 		// ImGui render
+		#if UI_ENABLED
 		ImGui::Render();
 		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+		#endif
 
 		// check for events and swap buffers
 		glfwSwapBuffers(window);
@@ -313,9 +320,11 @@ int main()
 	glDeleteVertexArrays(1, &colorCubeVAO);
 	glDeleteVertexArrays(1, &lightCubeVAO);
 	glDeleteBuffers(1, &VBO);
-	ImGui_ImplOpenGL3_Shutdown();
-	ImGui_ImplGlfw_Shutdown();
-	ImGui::DestroyContext();
+	#if UI_ENABLED
+		ImGui_ImplOpenGL3_Shutdown();
+		ImGui_ImplGlfw_Shutdown();
+		ImGui::DestroyContext();
+	#endif
 	glfwTerminate();
 	return 0;
 }
