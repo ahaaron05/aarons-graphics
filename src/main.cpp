@@ -13,7 +13,7 @@
 #include <vector>
 #include <stack>
 
-#define UI_ENABLED 0
+#define UI_ENABLED 1
 
 #ifndef M_PI 	// manually defined pi constant for use in calculations
 #define M_PI 3.14159265358979323846
