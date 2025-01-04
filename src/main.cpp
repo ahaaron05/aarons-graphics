@@ -13,7 +13,7 @@
 #include <vector>
 #include <stack>
 
-#define UI_ENABLED 1
+#define UI_ENABLED 0
 
 #ifndef M_PI 	// manually defined pi constant for use in calculations
 #define M_PI 3.14159265358979323846
@@ -31,8 +31,8 @@ unsigned int loadTexture(char const* path);
 
 
 // Settings
-const unsigned int SCREEN_WIDTH = 1200;
-const unsigned int SCREEN_HEIGHT = 900;
+const unsigned int SCREEN_WIDTH = 800;
+const unsigned int SCREEN_HEIGHT = 600;
 
 // cameras
 Camera camera(glm::vec3(0.0f, 0.0f, 5.0f));
@@ -163,7 +163,7 @@ int main()
 
 	// setup for rendering normal lines
 	std::vector<float> normalLinesVerticies;
-	float normalLineLength = 0.5f; // for visualization, not for real interpretation;
+	float normalLineLength = 0.2f; // for visualization, not for real interpretation;
 	for(size_t i = 0; i < sizeof(vertices) / sizeof(vertices[0]); i += 8)
 	{
 		float vx = vertices[i];
@@ -203,13 +203,57 @@ int main()
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
 	glEnableVertexAttribArray(0);
 
-	// load textures
-	unsigned int diffuseMap = loadTexture("C:/aarons-graphics/res/container2.png");
-	unsigned int specularMap = loadTexture("C:/aarons-graphics/res/container2_specular.png");
+	// Floor setup
+	float floor_verticies[] =
+	{	// pos	
+		-2.0f, 0.0f, 2.0f,		
+		-2.0f, 0.0f, -2.0f,		// tri 1
+		2.0f, 0.0f, -2.0f,
+		
+		-2.0f, 0.0f, 2.0f,
+		2.0f, 0.0f, 2.0f,		// tri 2
+		2.0f, 0.0f, -2.0f,
+	};
+	unsigned int floorVAO, floorVBO;
+	glGenVertexArrays(1, &floorVAO);
+	glGenBuffers(1, &floorVBO);
+	glBindVertexArray(floorVAO);
+	glBindBuffer(GL_ARRAY_BUFFER, floorVBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(floor_verticies), floor_verticies, GL_STATIC_DRAW);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+	glEnableVertexAttribArray(0);
 
+
+	// setup shaders
 	Shader colorObjShader("shaders/color_cube.vert", "shaders/color_cube.frag");
 	Shader lightSrcShader("shaders/light_cube.vert", "shaders/light_cube.frag");
 	Shader normalLinesShader("shaders/normal_lines.vert", "shaders/normal_lines.frag");
+	Shader floorShader("shaders/floor.vert", "shaders/floor.frag");
+	
+	// load textures
+	unsigned int diffuseMap = loadTexture("C:/aarons-graphics/res/container2.png");
+	unsigned int specularMap = loadTexture("C:/aarons-graphics/res/container2_specular.png");
+	//unsigned int emissionMap = loadTexture("C:/aarons-graphics/res/matrix_emission_map.jpg");
+
+	// pass in uniforms
+	colorObjShader.use();
+	colorObjShader.setInt("material.diffuseMap", 0);
+	colorObjShader.setInt("material.specularMap", 1);
+	//colorObjShader.setInt("material.emissionMap", 2);
+
+	glm::vec3 cubePositions[] = 
+	{
+		glm::vec3( 0.0f,  0.0f,  0.0f),
+    	glm::vec3( 2.0f,  5.0f, -15.0f),
+    	glm::vec3(-1.5f, -2.2f, -2.5f),
+    	glm::vec3(-3.8f, -2.0f, -12.3f),
+    	glm::vec3( 2.4f, -0.4f, -3.5f),
+    	glm::vec3(-1.7f,  3.0f, -7.5f),
+    	glm::vec3( 1.3f, -2.0f, -2.5f),
+    	glm::vec3( 1.5f,  2.0f, -2.5f),
+    	glm::vec3( 1.5f,  0.2f, -1.5f),
+    	glm::vec3(-1.3f,  1.0f, -1.5f)
+	};
 	
 	// Render Loop
 	while (!glfwWindowShouldClose(window))
@@ -234,6 +278,16 @@ int main()
 
 		colorObjShader.use();
         colorObjShader.setVec3("viewPos", camera.position);
+        colorObjShader.setFloat("material.shininess", 0.6f * 128.0f);
+		// bind diffuse map
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, diffuseMap);
+		// bind specular map
+		glActiveTexture(GL_TEXTURE1);
+		glBindTexture(GL_TEXTURE_2D, specularMap);
+		// bind emission map
+		//glActiveTexture(GL_TEXTURE2);
+		//glBindTexture(GL_TEXTURE_2D, emissionMap);
 		
 		// light properties
 		float radius = 4.0f;
@@ -243,32 +297,57 @@ int main()
         colorObjShader.setVec3("light.diffuse", glm::vec3(0.5f));
         colorObjShader.setVec3("light.specular", glm::vec3(1.0f));
 
-        // material properties (example, chrome)
-		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, diffuseMap);
-        colorObjShader.setInt("material.diffuseMap", 0);
-		glActiveTexture(GL_TEXTURE1);
-		glBindTexture(GL_TEXTURE_2D, specularMap);
-		colorObjShader.setInt("materials.specularMap", 1);
-        colorObjShader.setVec3("material.specular", glm::vec3(0.774597f)); // specular lighting doesn't have full effect on this object's material
-        colorObjShader.setFloat("material.shininess", 0.6f * 128.0f);
-	
 		// pass projection matrix to shader (note: in this case, it can change every frame)
 		glm::mat4 projection = glm::perspective(glm::radians(camera.fov), (float)(SCREEN_WIDTH / SCREEN_HEIGHT), 0.1f, 100.0f); // NOTE: aspect ratio will determine FOV_X
 		glm::mat4 view = camera.get_view_matrix();
 		colorObjShader.setMat4("projection", projection);
 		colorObjShader.setMat4("view", view);  
 
-		glm::mat4 model = glm::mat4(1.0f);
-		colorObjShader.setMat4("model", model);
-		glm::mat4 normalMat = glm::transpose(glm::inverse(model));
-		colorObjShader.setMat4("normalMat", normalMat);
+		colorObjShader.setVec3("light.direction", glm::vec3(-0.2f, -1.0f, -0.3f));
+
+		glm::mat4 model(1.0f);
+
+		// render floor
+		floorShader.use();
+		floorShader.setMat4("projection", projection);
+		floorShader.setMat4("view", view);
+		model = glm::translate(model, glm::vec3(0.0f, -3.0f, 0.0f));
+		model = glm::scale(model, glm::vec3(3.0f, 3.0f, 3.0f));
+		floorShader.setMat4("model", model);
+
+		glBindVertexArray(floorVAO);
+		glDrawArrays(GL_TRIANGLES, 0, 6);
+		
+
+		// render the 10 cubes
+		for(int i = 0; i < 10; i++)
+		{
+			colorObjShader.use();
+			model = glm::mat4(1.0f);
+			model = glm::translate(model, cubePositions[i]);
+			float angle = 20.0f * i;
+			model = glm::rotate(model, glm::radians(angle), glm::vec3(1.0f, 0.3f, 0.5f));
+			colorObjShader.setMat4("model", model);
+			glm::mat4 normalMat = glm::transpose(glm::inverse(model));
+			colorObjShader.setMat4("normalMat", normalMat);
+
+			glBindVertexArray(colorCubeVAO);
+			glDrawArrays(GL_TRIANGLES, 0, 36);
+
+			// render normal lines visually
+			normalLinesShader.use();
+			normalLinesShader.setMat4("projection", projection);
+			normalLinesShader.setMat4("view", view);
+			model = glm::mat4(1.0f);
+			model = glm::translate(model, cubePositions[i]);
+			model = glm::rotate(model, glm::radians(angle), glm::vec3(1.0f, 0.3f, 0.5f));
+			normalLinesShader.setMat4("model", model);
+
+			glBindVertexArray(normalLinesVAO);
+			glDrawArrays(GL_LINES, 0, normalLinesVerticies.size() / 3);
+		}
+
 		colorObjShader.setVec3("viewPos", camera.position);
-
-
-		// render the cube
-		glBindVertexArray(colorCubeVAO);
-		glDrawArrays(GL_TRIANGLES, 0, 36);
 		
 		// now render the light source cube
 		lightSrcShader.use();
@@ -285,15 +364,6 @@ int main()
 		glBindVertexArray(lightCubeVAO);
 		glDrawArrays(GL_TRIANGLES, 0, 36);
 
-		// render normal lines visually
-		normalLinesShader.use();
-		normalLinesShader.setMat4("projection", projection);
-		normalLinesShader.setMat4("view", view);
-		model = glm::mat4(1.0f);
-		normalLinesShader.setMat4("model", model);
-
-		glBindVertexArray(normalLinesVAO);
-		glDrawArrays(GL_LINES, 0, normalLinesVerticies.size() / 3);
 
 		// ImGui render
 		#if UI_ENABLED
