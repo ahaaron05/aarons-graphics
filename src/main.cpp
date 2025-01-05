@@ -10,10 +10,14 @@
 #include "Camera.hpp"
 #include "stb_image.h"
 #include <iostream>
+#include <string>
+#include <fstream>
+#include <sstream>
 #include <vector>
 #include <stack>
 
 #define UI_ENABLED 0
+#define RENDER_NORMALS 0
 
 #ifndef M_PI 	// manually defined pi constant for use in calculations
 #define M_PI 3.14159265358979323846
@@ -45,7 +49,7 @@ float delta_time = 0.0f; // Time between current frame and last frame
 float last_frame_time = 0.0f;
 
 // lighting
-glm::vec3 lightPos(1.3f, 1.2f, -1.0f);
+glm::vec3 lightPos(0.0f, 1.8f, 3.0f);
 
 int main()
 {
@@ -98,7 +102,6 @@ int main()
 		ImGui_ImplGlfw_InitForOpenGL(window, true); // setup Platform/Renderer backends
 		ImGui_ImplOpenGL3_Init("#version 330");
 	#endif
-
 
 	// setup for color cube 
 	float vertices[] = 
@@ -231,9 +234,9 @@ int main()
 	Shader floorShader("shaders/floor.vert", "shaders/floor.frag");
 	
 	// load textures
-	unsigned int diffuseMap = loadTexture("C:/aarons-graphics/res/container2.png");
-	unsigned int specularMap = loadTexture("C:/aarons-graphics/res/container2_specular.png");
-	//unsigned int emissionMap = loadTexture("C:/aarons-graphics/res/matrix_emission_map.jpg");
+	unsigned int diffuseMap = loadTexture("D:/aarons graphics/res/container2.png");
+	unsigned int specularMap = loadTexture("D:/aarons graphics/res/container2_specular.png");
+	//unsigned int emissionMap = loadTexture("D:/aarons graphics/res/matrix_emission_map.jpg");
 
 	// pass in uniforms
 	colorObjShader.use();
@@ -292,10 +295,16 @@ int main()
 		// light properties
 		float radius = 4.0f;
 		glm::vec3 dynamicLightPos = glm::vec3(radius * cos(static_cast<float>(glfwGetTime()) / 2), 0.0f, radius * sin(static_cast<float>(glfwGetTime()) / 2));
-		colorObjShader.setVec3("light.position", dynamicLightPos);
+		colorObjShader.setVec3("light.position", camera.position);
+		colorObjShader.setVec3("light.direction", camera.front);
+		colorObjShader.setFloat("light.cutOff", glm::cos(glm::radians(12.5f)));
+
         colorObjShader.setVec3("light.ambient", glm::vec3(0.1f));
         colorObjShader.setVec3("light.diffuse", glm::vec3(0.5f));
         colorObjShader.setVec3("light.specular", glm::vec3(1.0f));
+		colorObjShader.setFloat("light.constant", 1.0f);
+		colorObjShader.setFloat("light.linear", 0.09f);
+		colorObjShader.setFloat("light.quadratic", 0.032f);
 
 		// pass projection matrix to shader (note: in this case, it can change every frame)
 		glm::mat4 projection = glm::perspective(glm::radians(camera.fov), (float)(SCREEN_WIDTH / SCREEN_HEIGHT), 0.1f, 100.0f); // NOTE: aspect ratio will determine FOV_X
@@ -303,9 +312,8 @@ int main()
 		colorObjShader.setMat4("projection", projection);
 		colorObjShader.setMat4("view", view);  
 
-		colorObjShader.setVec3("light.direction", glm::vec3(-0.2f, -1.0f, -0.3f));
 
-		glm::mat4 model(1.0f);
+		glm::mat4 model(1.0f); // quick reset
 
 		// render floor
 		floorShader.use();
@@ -334,7 +342,9 @@ int main()
 			glBindVertexArray(colorCubeVAO);
 			glDrawArrays(GL_TRIANGLES, 0, 36);
 
+
 			// render normal lines visually
+			#if RENDER_NORMALS 
 			normalLinesShader.use();
 			normalLinesShader.setMat4("projection", projection);
 			normalLinesShader.setMat4("view", view);
@@ -345,24 +355,22 @@ int main()
 
 			glBindVertexArray(normalLinesVAO);
 			glDrawArrays(GL_LINES, 0, normalLinesVerticies.size() / 3);
+			#endif
 		}
 
 		colorObjShader.setVec3("viewPos", camera.position);
 		
 		// now render the light source cube
-		lightSrcShader.use();
-		lightSrcShader.setMat4("projection", projection);
-		lightSrcShader.setMat4("view", view);
-		model = glm::mat4(1.0f);
-		model = glm::translate(model, lightPos); 	// move and scale down light source
-		model = glm::scale(model, glm::vec3(0.2f));
-		lightSrcShader.setMat4("model", model);
-		model = glm::mat4(1.0f);
-		model = glm::translate(model, dynamicLightPos);
-		lightSrcShader.setMat4("model", model);
+		// lightSrcShader.use();
+		// lightSrcShader.setMat4("projection", projection);
+		// lightSrcShader.setMat4("view", view);
+		// model = glm::mat4(1.0f);
+		// model = glm::translate(model, lightPos);
+		// model = glm::scale(model, glm::vec3(0.2f));
+		// lightSrcShader.setMat4("model", model);
 		
-		glBindVertexArray(lightCubeVAO);
-		glDrawArrays(GL_TRIANGLES, 0, 36);
+		// glBindVertexArray(lightCubeVAO);
+		// glDrawArrays(GL_TRIANGLES, 0, 36);
 
 
 		// ImGui render
