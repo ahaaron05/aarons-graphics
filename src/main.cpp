@@ -17,7 +17,7 @@
 #include <stack>
 
 #define UI_ENABLED 0
-#define RENDER_NORMALS 0
+#define RENDER_NORMALS 1
 
 #ifndef M_PI 	// manually defined pi constant for use in calculations
 #define M_PI 3.14159265358979323846
@@ -206,32 +206,11 @@ int main()
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
 	glEnableVertexAttribArray(0);
 
-	// Floor setup
-	float floor_verticies[] =
-	{	// pos	
-		-2.0f, 0.0f, 2.0f,		
-		-2.0f, 0.0f, -2.0f,		// tri 1
-		2.0f, 0.0f, -2.0f,
-		
-		-2.0f, 0.0f, 2.0f,
-		2.0f, 0.0f, 2.0f,		// tri 2
-		2.0f, 0.0f, -2.0f,
-	};
-	unsigned int floorVAO, floorVBO;
-	glGenVertexArrays(1, &floorVAO);
-	glGenBuffers(1, &floorVBO);
-	glBindVertexArray(floorVAO);
-	glBindBuffer(GL_ARRAY_BUFFER, floorVBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(floor_verticies), floor_verticies, GL_STATIC_DRAW);
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-	glEnableVertexAttribArray(0);
-
 
 	// setup shaders
 	Shader colorObjShader("shaders/color_cube.vert", "shaders/color_cube.frag");
 	Shader lightSrcShader("shaders/light_cube.vert", "shaders/light_cube.frag");
 	Shader normalLinesShader("shaders/normal_lines.vert", "shaders/normal_lines.frag");
-	Shader floorShader("shaders/floor.vert", "shaders/floor.frag");
 	
 	// load textures
 	unsigned int diffuseMap = loadTexture("D:/aarons graphics/res/container2.png");
@@ -314,18 +293,6 @@ int main()
 
 
 		glm::mat4 model(1.0f); // quick reset
-
-		// render floor
-		floorShader.use();
-		floorShader.setMat4("projection", projection);
-		floorShader.setMat4("view", view);
-		model = glm::translate(model, glm::vec3(0.0f, -3.0f, 0.0f));
-		model = glm::scale(model, glm::vec3(3.0f, 3.0f, 3.0f));
-		floorShader.setMat4("model", model);
-
-		glBindVertexArray(floorVAO);
-		glDrawArrays(GL_TRIANGLES, 0, 6);
-		
 
 		// render the 10 cubes
 		for(int i = 0; i < 10; i++)
